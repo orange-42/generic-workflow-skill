@@ -15,6 +15,7 @@ includes:
   - feishu-prd-workflow/git-branch
   - feishu-prd-workflow/write-code
   - feishu-prd-workflow/git-finish
+  - feishu-prd-workflow/git-workflow
   - feishu-prd-workflow/browser-qa
   - feishu-prd-workflow/final-verify
 ---
@@ -43,6 +44,7 @@ includes:
 | git-branch | 创建 feature/hotfix 分支 + 推送 | `feishu-prd-workflow/git-branch` |
 | write-code | 按技术方案写代码 | `feishu-prd-workflow/write-code` |
 | git-finish | 提交代码 + 创建 MR | `feishu-prd-workflow/git-finish` |
+| git-workflow | 双模通用 Git 工作流（脏写自愈+MR一键收口） | `feishu-prd-workflow/git-workflow` |
 | browser-qa | 浏览器自动化验收 | `feishu-prd-workflow/browser-qa` |
 | final-verify | 最终复核 + 结论 | `feishu-prd-workflow/final-verify` |
 
@@ -129,6 +131,10 @@ Phase 1          Phase 2          Phase 3          Phase 4
 - browser-qa：可选（用户明确要求时才跑）
 - final-verify：必跑（至少复核已完成的阶段）
 
+> [!TIP]
+> **🌟 新版推荐：`git-workflow` 终极单兵武器**
+> 本工作流现已引入全新的 `git-workflow` 通用大一统技能。它完美合并并超越了原本离散的 `git-branch` 与 `git-finish` 两个步骤，天生支持**脏写自动安全迁移**、**中文任务名称智能地道翻译与小驼峰化**、**指派人 GitLab ID 动态检索与降级兜底**等超一流心智。在开发日常中，强烈建议优先使用 `git-workflow` 闭环承接整个分支到提交生命周期！
+
 ---
 
 ## 产物目录
@@ -182,6 +188,7 @@ Agent 加载此 skill 后，**每个阶段开始前必须先做环境检查**。
 | git-branch | Git + 远端连通 | `git --version` + `git fetch --dry-run` | 引导安装 Git / 检查 SSH |
 | write-code | 无特殊依赖 | — | — |
 | git-finish | Git + MR 创建 | `glab --version` → 降级 GitLab API → 手动指引 | 逐级降级，不阻塞 |
+| git-workflow | Git + MR 创建 | `git --version` + `glab --version` (或 GitLab API) | 动态检索 ID 并自适应降级 |
 | browser-qa | 浏览器工具 | chrome-devtools MCP → Playwright → Agent 自带 | 引导安装或跳过 |
 | final-verify | 无特殊依赖 | — | — |
 

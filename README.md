@@ -6,7 +6,7 @@
   <p align="center">
     <img src="https://img.shields.io/badge/platform-Hermes%20|%20Claude%20Code%20|%20Cursor%20|%20OpenCode%20|%20Windsurf-blue" alt="platforms">
     <img src="https://img.shields.io/badge/license-MIT-green" alt="license">
-    <img src="https://img.shields.io/badge/skills-9%20modular%20sub--skills-orange" alt="skills">
+    <img src="https://img.shields.io/badge/skills-10%20modular%20sub--skills-orange" alt="skills">
     <img src="https://img.shields.io/badge/stages-8%20phase%20pipeline-purple" alt="stages">
   </p>
 </p>
@@ -58,8 +58,9 @@ Agent 会自动按阶段执行，每步播报进度，产物落在 `项目路径
 | 5 | `git-branch` | 创建 feature / hotfix 开发分支 | 项目路径 + 任务名 | 分支已推送 |
 | 6 | `write-code` | 按技术方案写代码 | 技术方案 + 测试用例 | `changes-summary.md` |
 | 7 | `git-finish` | 提交代码 + 推送 + 创建 MR | PingCode ID + 功能摘要 | `mr-info.md` |
-| 8 | `browser-qa` | 浏览器自动化验收 | 测试用例 + 目标 URL | `qa-verification.md` |
-| 9 | `final-verify` | 最终复核 + 结论 + 下一步建议 | 产物目录 | `final-verification.md` |
+| 8 | `git-workflow` | 双模通用 Git 工作流（脏写自愈+MR一键收口） | 项目路径 + 任务名 + PingCode ID | 一键合规交付创建 MR |
+| 9 | `browser-qa` | 浏览器自动化验收 | 测试用例 + 目标 URL | `qa-verification.md` |
+| 10 | `final-verify` | 最终复核 + 结论 + 下一步建议 | 产物目录 | `final-verification.md` |
 
 ---
 
@@ -106,6 +107,19 @@ Release：release/1.24.0
 
 # 只提交 MR（代码已写完）
 用 feishu-prd-workflow/git-finish 收口：
+项目路径：/path/to/project
+PingCode：#PROJ-123
+功能摘要：退款照片锁定功能
+
+# 🌟 推荐：用大一统通用双模工作流（支持脏写自愈、中文驼峰重构与动态 MR 指派）
+# 动作 1：拉取并安全搬迁分支
+用 feishu-prd-workflow/git-workflow 执行 gitBranch：
+项目路径：/path/to/project
+Release：1.0.5                  # 智能自愈：1.0.5 -> release-1.0.5
+任务名：退款图片锁定             # 智能翻译并驼峰化 -> refundPhotoLock
+
+# 动作 2：一键规范提交并指派 MR
+用 feishu-prd-workflow/git-workflow 执行 gitFinish：
 项目路径：/path/to/project
 PingCode：#PROJ-123
 功能摘要：退款照片锁定功能
@@ -415,6 +429,7 @@ feishu-prd-workflow/
 │   ├── git-branch.md
 │   ├── write-code.md
 │   ├── git-finish.md
+│   ├── git-workflow.md
 │   ├── browser-qa.md
 │   └── final-verify.md
 └── examples/
