@@ -46,7 +46,7 @@ Release：release-1.0.6
 | `mode`         | 否             | 分支模式：`feature`（默认）或 `hotfix`                                                             |
 | `release`      | `feature` 必需 | 基线 release 分支，如 `release-1.0.6`                                                              |
 | `task`         | ✅             | 任务名（**必须使用驼峰命名**，例如 `apiIntegration` 或 `fixPaymentCrash`，严禁使用中划线或下划线） |
-| `developer`    | 否             | 开发者简称，默认 `allen`                                                                           |
+| `developer`    | 否（推导自愈） | 开发者简称（Agent 需优先通过本地 git config 或项目偏好配置自动嗅探，若无则主动问询，支持中文简称智能自愈转换为拼音/英文，严禁直接默认 `allen`） |
 
 ### 3. 💡 基线分支智能推理与自愈机制
 
@@ -73,16 +73,32 @@ Release：release-1.0.6
    - **用户偏好配置 (原方案)**：若用户有特定习惯需要在本地保留并对齐基线分支，可通过项目根目录下的偏好配置文件（如 `.agent_preferences.json`）进行显式配置：
      - 配置项：`git.keep_local_baseline: true`（布尔值，默认为 `false`）。
      - 当检测到该配置为 `true` 时，Agent 将自动降级回原方案（即：本地检出基线分支 -> `git pull` 对齐远端 -> 基于本地基线分支检出新开发分支）。
+6. **开发者简称 (developer) 三级探测与中文拼音自愈机制 (去硬编码设计)**：
+   - **核心安全红线**：Agent **绝对不能**直接在代码中硬编码任何特定的默认开发者简称（如 `"allen"`）。这会导致其他团队成员拉分支时发生严重命名冲突与尴尬。
+   - **三级探测机制 (智能推导)**：
+     - **第一级：项目偏好配置**：优先嗅探项目根目录下偏好配置文件（如 `.agent_preferences.json`）中的 `git.developer` 或 `git.username` 配置项。
+     - **第二级：本地 Git 环境探测**：若偏好文件未配置，静默执行 `git config user.name`，动态拉取并使用当前系统全局或局部配置的 Git 用户名。
+     - **第三级：友好问询（绝对兜底）**：若以上级均未能成功解析出有效简称，Agent 必须主动触发熔断交互，以亲和的中文问询用户：
+       > _“检测到您未指定开发者简称。为了规范拼装 Git 分支名称，请问您的英文简称或拼音是什么？（例如：`allen`，后续会自动记录在此环境）”_
+   - **中文简称智能自愈**：
+     - **拦截策略**：在上述任何一级探测中，若获取到的开发者名称中包含**中文字符**（例如：`张三` 或 `李四`），Agent **绝对不能直接将其拼入分支名中**，以防分支名出现非 ASCII 字符导致流水线或部署兼容性报错。
+     - **自动拼音化**：Agent 必须在后台自动将其转换为**规范 of 拼音全拼或声母缩写（纯小写英文）**。
+       - **自愈实例**：`张三` 自动自愈重构为 `zhangsan` 或 `zs`；`李四` 自动自愈重构为 `lisi` 或 `ls`。
 
 ### 4. ⚙️ 前置检查与智能偏好探测
 
-1. **多 Agent 偏好配置文件嗅探**：
+1. **多 Agent 偏好配置文件与本地 Git 简称嗅探 (三级探测)**：
    - 按照以下优先级，主动在 `{{project_path}}` 根目录下嗅探并读取第一个存在的配置文件：
      1. `.agent_preferences.json` （跨 IDE 与 Agent 框架的通用标准偏好文件）
      2. `.workflow_preferences.json` （工作流专属标准偏好文件）
      3. `.gemini_preferences.json` （历史兼容偏好文件）
    - **解析本地基线偏好**：
      - 提取并解析配置项 `git.keep_local_baseline`。若存在且为 `true`，则标记启用“本地保留基线”原方案；若不存在或为 `false`，则默认启用“直接基于 Remote 检出”的优化方案。
+   - **执行开发者简称 (developer) 三级探测**：
+     - 1) 优先嗅探上述偏好配置文件中的 `git.developer` 或 `git.username`。
+     - 2) 若无，自动执行 `git config user.name` 获取本地用户名。
+     - 3) 若仍无，主动向用户发出中文提示进行交互问询。
+     - 4) 对获取的简称执行中文智能拼音/简写转换自愈（纯小写 ASCII），锁定最终 `developer` 参数。
 2. **工作区状态智能嗅探与“无感脏写迁移”**：
    - **智能状态嗅探**：
      - 在开始拉取分支前，执行 `git status --porcelain` 嗅探本地工作区。
@@ -211,6 +227,7 @@ Target分支：release-1.0.6
 - [ ] 分支命名符合命名规范（Feature 对应 `feature-{release}/{developer}_{task}_{YYYYMMDD}`，Hotfix 对应 `hotfix/{developer}_{task}_{YYYYMMDD}`）。
 - [ ] 默认支持直接基于 Remote 检出分支以减少本地冗余基线分支（除非偏好配置中显式开启 `git.keep_local_baseline: true` 降级为原方案）。
 - [ ] 创建分支后自动执行 `git push -u origin {target_branch}` 确立本地与远端分支的强追踪关联（upstream 绑定）。
+- [ ] 开发者简称 `developer` 严格通过偏好配置 -> `git config` -> 交互问询的“三级探测机制”动态获取，支持中文简称智能转换为拼音小写简写（自愈），严禁硬编码默认 `allen`。
 - [ ] 分支基于正确基线创建（Feature 基线为 `release` 分支，Hotfix 基线为 `master`/`main` 分支）。
 - [ ] 提交 Commit 信息格式完美呈现 `feat: #ID 摘要`。
 - [ ] `gitFinish` 流程支持多偏好配置文件兼容嗅探，并具备默认指派人用户名到数字 ID 的动态解析与容错降级能力。
