@@ -113,13 +113,13 @@ PingCode：#PROJ-123
 
 # 🌟 推荐：用大一统通用双模工作流（支持脏写自愈、中文驼峰重构与动态 MR 指派）
 # 动作 1：拉取并安全搬迁分支
-用 feishu-prd-workflow/git-workflow 执行 gitBranch：
+用 git-workflow 执行 gitBranch：
 项目路径：/path/to/project
 Release：1.0.5                  # 智能自愈：1.0.5 -> release-1.0.5
 任务名：退款图片锁定             # 智能翻译并驼峰化 -> refundPhotoLock
 
 # 动作 2：一键规范提交并指派 MR
-用 feishu-prd-workflow/git-workflow 执行 gitFinish：
+用 git-workflow 执行 gitFinish：
 项目路径：/path/to/project
 PingCode：#PROJ-123
 功能摘要：退款照片锁定功能
@@ -289,7 +289,10 @@ Agent 会自动从 `current_phase` 继续，不会重复执行已完成的阶段
 ## 📦 安装
 
 ```bash
-# Hermes（推荐）
+# Antigravity IDE（推荐）
+# 🚀 参见下方「🛸 Antigravity IDE 专属斜杠（Slash）命令快捷激活指南」进行一键黄金部署
+
+# Hermes
 hermes skill install SKILL.md
 
 # Claude Code
@@ -307,6 +310,33 @@ cp SKILL.md skills/*.md ~/.opencode/skills/feishu-prd-workflow/
 # 其他平台
 # 把整个文件夹放到对应平台的 skills/rules 目录
 ```
+
+---
+
+## 🛸 Antigravity IDE 专属斜杠（Slash）命令快捷激活指南
+
+本工作流技能集已针对 **Antigravity IDE** 进行了极其精细的适配。为了让您在 IDE 聊天输入框中输入斜杠时，能够瞬间以最高优先级弹出 **`feishu-prd-workflow` (总编排流)** 与 **`git-workflow` (双模通用 Git 大招)** 快捷命令，请严格遵循以下**一键黄金部署流程**：
+
+### 1. ⚙️ IDE 技能物理目录加载规范（极其重要）
+Antigravity IDE 的技能加载引擎有着极其严密的底层约束：**每一个能在斜杠列表中弹出的自定义 Skill，必须在物理磁盘上是一个独立的子文件夹，且文件夹内必须包含名为 `SKILL.md` 的主配置文件！** 单个散落的 `.md` 技能文件会被引擎直接静默忽略。
+
+请在您的 Mac 终端中运行以下一键部署脚本：
+
+```bash
+# 📂 部署 1：安装并更新全局大编排流 feishu-prd-workflow
+mkdir -p ~/.gemini/config/skills/feishu-prd-workflow
+rsync -av --delete --exclude='.git' /Users/allen/himo-projects/ai-space/generic-workflow-skill/ ~/.gemini/config/skills/feishu-prd-workflow/
+
+# 📂 部署 2：安装大一统通用 git-workflow 单兵技能（晋升为全局顶级技能）
+mkdir -p ~/.gemini/config/skills/git-workflow
+cp /Users/allen/himo-projects/ai-space/generic-workflow-skill/skills/git-workflow.md ~/.gemini/config/skills/git-workflow/SKILL.md
+```
+
+### 2. 🪄 快捷斜杠呼唤玩法
+部署完毕后，IDE 会在后台热重载这套技能配置。您可以随时在 IDE 对话框中键入斜杠，体验流水线般的快感：
+
+* **呼唤大编排流**：键入 **`/feishu`** ➔ 下拉联想列表会瞬间精准弹出 **`feishu-prd-workflow`** ➔ 选中后即可一键生成工作流全景配置模板！
+* **呼唤 Git 终极单兵**：键入 **`/git-`** ➔ 下拉联想列表会以最高优先级弹出 **`git-workflow`** ➔ 选中后即可快速唤起规范的分支拉取搬迁与 MR 合规提交命令！
 
 ---
 

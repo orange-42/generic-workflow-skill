@@ -15,7 +15,7 @@ includes:
   - feishu-prd-workflow/git-branch
   - feishu-prd-workflow/write-code
   - feishu-prd-workflow/git-finish
-  - feishu-prd-workflow/git-workflow
+  - git-workflow
   - feishu-prd-workflow/browser-qa
   - feishu-prd-workflow/final-verify
 ---
@@ -44,7 +44,7 @@ includes:
 | git-branch | 创建 feature/hotfix 分支 + 推送 | `feishu-prd-workflow/git-branch` |
 | write-code | 按技术方案写代码 | `feishu-prd-workflow/write-code` |
 | git-finish | 提交代码 + 创建 MR | `feishu-prd-workflow/git-finish` |
-| git-workflow | 双模通用 Git 工作流（脏写自愈+MR一键收口） | `feishu-prd-workflow/git-workflow` |
+| git-workflow | 双模通用 Git 工作流（脏写自愈+MR一键收口） | `git-workflow` |
 | browser-qa | 浏览器自动化验收 | `feishu-prd-workflow/browser-qa` |
 | final-verify | 最终复核 + 结论 | `feishu-prd-workflow/final-verify` |
 

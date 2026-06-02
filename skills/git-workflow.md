@@ -1,5 +1,5 @@
 ---
-name: feishu-prd-workflow/git-workflow
+name: git-workflow
 description: 整合分支生命周期管理（gitBranch）与提交收口（gitFinish）的驼峰命名 Git 工作流技能。支持自动 stash 暂存、基线同步、以及基于项目通用偏好配置文件（如 .agent_preferences.json）自动指派默认指派人（如 Team Robot）创建 MR 的能力。
 parent: feishu-prd-workflow
 phase: 5-and-6
@@ -68,35 +68,59 @@ Release：release-1.0.6
        - `退款图片锁定` 自动重构为 `refundPhotoLock`。
        - `修复支付崩溃` 自动重构为 `fixPaymentCrash`。
      - 在确认执行拉取分支前，需在交互信息中清晰地呈现翻译并驼峰化后的标准分支名称，保障流程的透明与掌控。
+5. **基于 Remote 的拉取优化方案 (默认) 与本地基线偏好**：
+   - **默认行为 (优化方案)**：为了保持本地分支列表的极度纯净，默认不创建、不更新本地基线分支。在获取最新的远程分支数据后，直接基于 `origin/{release}` 检出开发分支。
+   - **用户偏好配置 (原方案)**：若用户有特定习惯需要在本地保留并对齐基线分支，可通过项目根目录下的偏好配置文件（如 `.agent_preferences.json`）进行显式配置：
+     - 配置项：`git.keep_local_baseline: true`（布尔值，默认为 `false`）。
+     - 当检测到该配置为 `true` 时，Agent 将自动降级回原方案（即：本地检出基线分支 -> `git pull` 对齐远端 -> 基于本地基线分支检出新开发分支）。
 
-### 4. ⚙️ 前置检查与智能工作区搬迁 (脏开发自适应机制)
+### 4. ⚙️ 前置检查与智能偏好探测
 
-> [!TIP]
-> 本技能天然支持**“无感脏写迁移”**高阶开发流：用户在错乱分支上已写完代码但未建分支时，直接运行本技能即可实现一键安全搬迁，Agent 将遵循以下自适应机制：
-
-1. **智能状态嗅探**：
-   - 在开始拉取分支前，执行 `git status --porcelain` 嗅探本地工作区。
-   - 若发现工作区存在未提交的修改（Dirty Working Tree）：
-     - **主动汇报与承诺**：Agent 需以极其专业的中文温馨告知用户：_“检测到您在当前分支有未提交的本地修改，我们将自动为您安全贮藏，并无缝搬迁至即将创建的全新开发分支上，请您放心！”_
+1. **多 Agent 偏好配置文件嗅探**：
+   - 按照以下优先级，主动在 `{{project_path}}` 根目录下嗅探并读取第一个存在的配置文件：
+     1. `.agent_preferences.json` （跨 IDE 与 Agent 框架的通用标准偏好文件）
+     2. `.workflow_preferences.json` （工作流专属标准偏好文件）
+     3. `.gemini_preferences.json` （历史兼容偏好文件）
+   - **解析本地基线偏好**：
+     - 提取并解析配置项 `git.keep_local_baseline`。若存在且为 `true`，则标记启用“本地保留基线”原方案；若不存在或为 `false`，则默认启用“直接基于 Remote 检出”的优化方案。
+2. **工作区状态智能嗅探与“无感脏写迁移”**：
+   - **智能状态嗅探**：
+     - 在开始拉取分支前，执行 `git status --porcelain` 嗅探本地工作区。
+     - 若发现工作区存在未提交的修改（Dirty Working Tree）：
+       - **主动汇报与承诺**：Agent 需以极其专业的中文温馨告知用户：_“检测到您在当前分支有未提交的本地修改，我们将自动为您安全贮藏，并无缝搬迁至即将创建的全新开发分支上，请您放心！”_
 
 ### 5. 操作时序与逻辑
 
 1. **工作区安全暂存**：
    - 执行 `git stash save "stash before branching for {task}"`。确保用户工作树上未提交的修改得到绝对安全的保护。
 2. **远端同步**：
-   - 执行 `git fetch --all --prune`。保持本地的远程追踪分支为最新。
-3. **拉取基线创建本地新分支**：
+   - 执行 `git fetch --all --prune`。保持本地远程追踪分支为最新，确保基线引用已是最新的远端状态。
+3. **根据偏好策略创建开发分支**：
    - **分支命名规范**：
      - **Feature 分支**：`feature-{release}/{developer}_{task}_{YYYYMMDD}`
      - **Hotfix 分支**：`hotfix/{developer}_{task}_{YYYYMMDD}`
+   - **分支检出时序 (核心分支拉取策略)**：
+     - **Feature 模式 (默认：直接基于 Remote 检出)**：
+       - 若 `git.keep_local_baseline` 为 `false`（默认优化方案）：
+         - 直接检出新开发分支并追踪远端基线：
+           `git checkout -b feature-{release}/{developer}_{task}_{YYYYMMDD} origin/{release}`
+       - 若 `git.keep_local_baseline` 为 `true`（原方案）：
+         - 1) 切换并更新本地基线分支：`git checkout {release} && git pull origin {release}`
+         - 2) 基于本地基线创建开发分支：`git checkout -b feature-{release}/{developer}_{task}_{YYYYMMDD}`
+     - **Hotfix 模式**：
+       - 先自动切换并拉取主干：`git checkout master && git pull origin master`（或自适应 `main`），再执行 `git checkout -b hotfix/{developer}_{task}_{YYYYMMDD} origin/master`
+4. **一键推送并建立远程追踪关系 (Upstream 绑定)**：
+   - 为了免去后续拉取和推送时反复手动指定分支的繁琐，在开发分支创建成功后，**立即将其推送到远端并建立追踪关系**。
    - **执行命令**：
-     - **Feature 模式**：`git checkout -b feature-{release}/{developer}_{task}_{YYYYMMDD} origin/{release}`
-     - **Hotfix 模式**：先自动切换并拉取主干：`git checkout master && git pull origin master`（或自适应 `main`），再执行 `git checkout -b hotfix/{developer}_{task}_{YYYYMMDD} origin/master`
-4. **恢复工作区与释放**：
+     ```bash
+     git push -u origin {target_branch}
+     ```
+     *(注：`-u`/`--set-upstream` 参数会自动将本地新分支与远端新创建的同名分支建立强追踪关系，效果完全等同于 `git branch --set-upstream-to=origin/{target_branch}`)*
+5. **恢复工作区与释放**：
    - 执行 `git stash pop`。安全地将第 1 步中贮藏的代码释放并应用回当前新拉出的分支，完美衔接开发流。
-5. **智能下一步问询 (闭环引导)**：
-   - 成功将修改迁移至新开发分支后，Agent **必须主动向用户发起交互式问询**：
-     > _“🎉 您的本地修改已安全搬迁至新分支 `{target_branch}`！请问接下来您需要：_
+6. **智能下一步问询 (闭环引导)**：
+   - 成功将修改迁移至新开发分支并建立上游绑定后，Agent **必须主动向用户发起交互式问询**：
+     > _“🎉 您的本地修改已安全搬迁至已自动绑定追踪新分支 `{target_branch}`！请问接下来您需要：_
      > \*1. **立即对这些修改进行规范化提交与 MR 收口 (直接为您唤起 `gitFinish` 流程)？\***
      > \*2. **保留在本地工作区，继续您的开发工作？\***
      > _请回复数字或说明您的意向。”_
@@ -185,6 +209,8 @@ Target分支：release-1.0.6
 ## 📋 验收标准
 
 - [ ] 分支命名符合命名规范（Feature 对应 `feature-{release}/{developer}_{task}_{YYYYMMDD}`，Hotfix 对应 `hotfix/{developer}_{task}_{YYYYMMDD}`）。
+- [ ] 默认支持直接基于 Remote 检出分支以减少本地冗余基线分支（除非偏好配置中显式开启 `git.keep_local_baseline: true` 降级为原方案）。
+- [ ] 创建分支后自动执行 `git push -u origin {target_branch}` 确立本地与远端分支的强追踪关联（upstream 绑定）。
 - [ ] 分支基于正确基线创建（Feature 基线为 `release` 分支，Hotfix 基线为 `master`/`main` 分支）。
 - [ ] 提交 Commit 信息格式完美呈现 `feat: #ID 摘要`。
 - [ ] `gitFinish` 流程支持多偏好配置文件兼容嗅探，并具备默认指派人用户名到数字 ID 的动态解析与容错降级能力。
