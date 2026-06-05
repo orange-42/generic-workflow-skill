@@ -392,7 +392,7 @@ Target分支：release-1.0.6
 - [ ] Commit 前已基于 `git diff --cached` 做限时轻量自检（默认 30-90 秒，由大模型进行 Code Review）；只因 Critical / 明显阻断问题暂停提交，非阻断建议不得拖慢提交/MR。
 - [ ] MR 描述不再只写 PingCode ID，已包含关联需求、本次改动、变更复盘、自检/Code Review、验证情况、Reviewer 重点关注。
 - [ ] `gitFinish` 流程支持多偏好配置文件兼容嗅探，并具备默认指派人与审核人用户名到数字 ID 的动态解析与容错降级能力；创建 MR 前必须询问并确认本次 assignee/reviewer，用户回复“机器人”时使用 Team Robot（`170`）。
-- [ ] 在 `git add` / `git commit` / 创建 MR 前，若且仅若当前是 `mode=feature`、`feature-*` source 分支、`release-*` 目标分支，才检查该 feature 分支是否已经 merged 到本次 release 目标分支；必须通过 `git merge-base --is-ancestor` 与 API 合并 SHA 深度双重确认最新提交确实已被包含，才拦截并提示或启动无感迁移。对于追加开发提交的 feature 分支不得误拦截。
+- [ ] 在 `git add` / `git commit` / 创建 MR 前，若且仅若当前是 `mode=feature`、`feature-*` source 分支、`release-*` 目标分支，才检查该 feature 分支是否已经 merged 到本次 release 目标分支；必须通过远程已合并分支检测（`git branch -r --merged`）与本地干净开发分支识别（`git log`）进行纯本地拓扑兜底，配合 Token 级 API 做深度校验与缺失降级，确保 100% 精确拦截，且对于追加开发提交和干净新分支不得误拦截。
 - [ ] MR 创建前已轻量查询是否存在相同 source -> target 的 open MR；若已存在，只提示并返回已有 MR 链接，不重复创建。
 - [ ] MR 创建默认使用 GitLab REST API + `curl` 方式，完全剥离对 `glab` CLI 的依赖，无 Token 或 API 返回报错时瞬间降级到网页自助直达通道，确保 100% 成功。
 - [ ] MR 创建后已通过 API 回读校验 `source_branch`、`target_branch`、`assignees`、`reviewers`、`web_url`。
